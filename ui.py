@@ -14,16 +14,64 @@ def main(page: ft.Page):
     """Main Flet app function."""
     page.title = "Payday Finance App"
     page.theme_mode = ft.ThemeMode.LIGHT
+    page.fonts = {
+        "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    }
     page.window_width = 1200
     page.window_height = 900  # Increased height
     page.window_maximized = True  # Full height
     page.padding = 15
 
-    # Title with icon
+    # Theme colors that adapt to light/dark mode
+    def get_theme_colors():
+        if page.theme_mode == ft.ThemeMode.DARK:
+            return {
+                "bg_primary": ft.Colors.GREY_900,
+                "bg_secondary": ft.Colors.GREY_800,
+                "text_primary": ft.Colors.WHITE,
+                "text_secondary": ft.Colors.GREY_300,
+                "accent": ft.Colors.BLUE_400,
+                "card_bg": ft.Colors.GREY_800,
+                "result_bg_blue": ft.Colors.BLUE_GREY_800,
+                "result_bg_green": ft.Colors.GREEN_800
+            }
+        else:
+            return {
+                "bg_primary": ft.Colors.WHITE,
+                "bg_secondary": ft.Colors.GREY_50,
+                "text_primary": ft.Colors.BLACK,
+                "text_secondary": ft.Colors.GREY_700,
+                "accent": ft.Colors.BLUE,
+                "card_bg": ft.Colors.WHITE,
+                "result_bg_blue": ft.Colors.BLUE_GREY_50,
+                "result_bg_green": ft.Colors.GREEN_50
+            }
+
+    # Title with theme toggle
+    def toggle_theme(e):
+        page.theme_mode = ft.ThemeMode.DARK if page.theme_mode == ft.ThemeMode.LIGHT else ft.ThemeMode.LIGHT
+        colors = get_theme_colors()
+        title.controls[0].color = colors["accent"]
+        title.controls[1].color = colors["text_primary"]
+        page.bgcolor = colors["bg_primary"]
+        # Update result container backgrounds
+        if hasattr(page, 'results_row'):
+            page.results_row.controls[0].content.controls[1].bgcolor = colors["result_bg_blue"]
+            page.results_row.controls[2].content.controls[1].bgcolor = colors["result_bg_green"]
+        page.update()
+
+    theme_button = ft.IconButton(
+        icon=ft.Icons.DARK_MODE if page.theme_mode == ft.ThemeMode.LIGHT else ft.Icons.LIGHT_MODE,
+        on_click=toggle_theme,
+        tooltip="Toggle theme"
+    )
+
     title = ft.Row([
         ft.Icon(ft.Icons.CALCULATE, size=28, color=ft.Colors.BLUE),
-        ft.Text("Payday Finance App", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE)
-    ], alignment=ft.MainAxisAlignment.CENTER)
+        ft.Text("Payday Finance App", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE, font_family="Inter"),
+        ft.Container(expand=True),
+        theme_button
+    ], alignment=ft.MainAxisAlignment.START)
 
     # Input fields with better styling
     payout_input = ft.TextField(
@@ -47,10 +95,10 @@ def main(page: ft.Page):
     )
 
     # Result display with better font
-    result_text = ft.Text("", size=12, font_family="Consolas", selectable=True, no_wrap=False)
+    result_text = ft.Text("", size=13, font_family="Inter", selectable=True, no_wrap=False)
 
     # Monthly summary display with better font
-    monthly_text = ft.Text("", size=12, font_family="Consolas", selectable=True, no_wrap=False)
+    monthly_text = ft.Text("", size=13, font_family="Inter", selectable=True, no_wrap=False)
 
     def calculate_allocation(e):
         """Handle calculate button click."""
@@ -111,7 +159,7 @@ def main(page: ft.Page):
     input_card = ft.Card(
         content=ft.Container(
             content=ft.Column([
-                ft.Text("Enter Payout Details", size=16, weight=ft.FontWeight.BOLD),
+                ft.Text("Enter Payout Details", size=16, weight=ft.FontWeight.BOLD, font_family="Inter"),
                 ft.Row([payout_input, retained_input, calc_button], alignment=ft.MainAxisAlignment.START, spacing=15),
             ]),
             padding=15
@@ -119,13 +167,14 @@ def main(page: ft.Page):
     )
 
     # Results section - side by side with scrollable content
+    colors = get_theme_colors()
     results_row = ft.Row([
         # Payout Allocation
         ft.Container(
             content=ft.Column([
                 ft.Row([
                     ft.Icon(ft.Icons.RECEIPT, size=18, color=ft.Colors.BLUE),
-                    ft.Text("Payout Allocation", size=14, weight=ft.FontWeight.BOLD)
+                    ft.Text("Payout Allocation", size=16, weight=ft.FontWeight.BOLD, font_family="Inter")
                 ], spacing=8),
                 ft.Container(
                     content=ft.ListView(
@@ -134,7 +183,7 @@ def main(page: ft.Page):
                         spacing=0,
                         padding=10
                     ),
-                    bgcolor=ft.Colors.BLUE_GREY_50,
+                    bgcolor=colors["result_bg_blue"],
                     border_radius=8,
                     expand=True
                 )
@@ -148,7 +197,7 @@ def main(page: ft.Page):
             content=ft.Column([
                 ft.Row([
                     ft.Icon(ft.Icons.BAR_CHART, size=18, color=ft.Colors.GREEN),
-                    ft.Text("Monthly Summary", size=14, weight=ft.FontWeight.BOLD)
+                    ft.Text("Monthly Summary", size=16, weight=ft.FontWeight.BOLD, font_family="Inter")
                 ], spacing=8),
                 ft.Container(
                     content=ft.ListView(
@@ -157,7 +206,7 @@ def main(page: ft.Page):
                         spacing=0,
                         padding=10
                     ),
-                    bgcolor=ft.Colors.GREEN_50,
+                    bgcolor=colors["result_bg_green"],
                     border_radius=8,
                     expand=True
                 )
@@ -166,6 +215,7 @@ def main(page: ft.Page):
             height=550
         )
     ], alignment=ft.MainAxisAlignment.START, spacing=10)
+    page.results_row = results_row
 
     # Main layout
     page.add(
