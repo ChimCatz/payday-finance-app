@@ -7,31 +7,35 @@ from .models import AllocationResult
 from .allocator import route_to_accounts, get_account_summary
 
 
-def generate_payout_report(allocation: AllocationResult) -> str:
+def generate_payout_report(allocation: AllocationResult, payout_amount: Decimal) -> str:
     """Generate a text report for a payout allocation."""
     routing = route_to_accounts(allocation)
     account_summary = get_account_summary(routing)
 
-    report = f"""
-Payday Allocation Report
+    def calc_pct(amount: Decimal) -> str:
+        if payout_amount == 0:
+            return "0.00%"
+        return f"{(amount / payout_amount * 100):.2f}%"
+
+    report = f"""Payday Allocation Report
 ========================
 
-Total Payout: PHP {allocation.total_allocated + allocation.unallocated_or_rounding_difference:.2f}
+Total Payout: PHP {payout_amount:.2f}
 
 Allocations:
-- Offering (BDO): PHP {allocation.offering_bdo:.2f}
-- Retained (BDO): PHP {allocation.retained_bdo:.2f}
-- Savings (GoTyme): PHP {allocation.gotyme_savings:.2f}
-- Emergency (GoTyme): PHP {allocation.gotyme_emergency:.2f}
-- Food (GCash): PHP {allocation.gcash_food:.2f}
-- Bills (GCash): PHP {allocation.gcash_bills:.2f}
-- Fun (GCash): PHP {allocation.gcash_fun:.2f}
-- Buffer (GCash): PHP {allocation.gcash_buffer:.2f}
+- Offering (BDO): PHP {allocation.offering_bdo:.2f} ({calc_pct(allocation.offering_bdo)})
+- Retained (BDO): PHP {allocation.retained_bdo:.2f} ({calc_pct(allocation.retained_bdo)})
+- Savings (GoTyme): PHP {allocation.gotyme_savings:.2f} ({calc_pct(allocation.gotyme_savings)})
+- Emergency (GoTyme): PHP {allocation.gotyme_emergency:.2f} ({calc_pct(allocation.gotyme_emergency)})
+- Food (GCash): PHP {allocation.gcash_food:.2f} ({calc_pct(allocation.gcash_food)})
+- Bills (GCash): PHP {allocation.gcash_bills:.2f} ({calc_pct(allocation.gcash_bills)})
+- Fun (GCash): PHP {allocation.gcash_fun:.2f} ({calc_pct(allocation.gcash_fun)})
+- Buffer (GCash): PHP {allocation.gcash_buffer:.2f} ({calc_pct(allocation.gcash_buffer)})
 
 Account Summary:
 """
     for account, total in account_summary.items():
-        report += f"- {account}: PHP {total:.2f}\n"
+        report += f"- {account}: PHP {total:.2f} ({calc_pct(total)})\n"
 
     report += f"\nTotal Allocated: PHP {allocation.total_allocated:.2f}\n"
     if allocation.unallocated_or_rounding_difference != 0:
@@ -54,7 +58,8 @@ def generate_monthly_summary(history: List[dict]) -> str:
     
     for entry in history:
         allocation = entry["allocation"]
-        total_amount += Decimal(str(allocation["total_allocated"])) + Decimal(str(allocation["unallocated_or_rounding_difference"]))
+        payout_amount = Decimal(str(entry["payout_input"]["amount"]))
+        total_amount += payout_amount
         
         # Sum categories
         category_totals["offering_bdo"] += Decimal(str(allocation["offering_bdo"]))
@@ -74,27 +79,31 @@ def generate_monthly_summary(history: List[dict]) -> str:
         category_totals["gcash_fun"] + category_totals["gcash_buffer"]
     )
     
+    def calc_pct(amount: Decimal) -> str:
+        if total_amount == 0:
+            return "0.00%"
+        return f"{(amount / total_amount * 100):.2f}%"
+    
     # Generate report
-    report = f"""
-Monthly Allocation Summary
+    report = f"""Monthly Allocation Summary
 ==========================
 
 Total Payouts: {total_payouts}
 Total Amount Processed: PHP {total_amount:.2f}
 
 Monthly Category Totals:
-- Offering (BDO): PHP {category_totals["offering_bdo"]:.2f}
-- Retained (BDO): PHP {category_totals["retained_bdo"]:.2f}
-- Savings (GoTyme): PHP {category_totals["gotyme_savings"]:.2f}
-- Emergency (GoTyme): PHP {category_totals["gotyme_emergency"]:.2f}
-- Food (GCash): PHP {category_totals["gcash_food"]:.2f}
-- Bills (GCash): PHP {category_totals["gcash_bills"]:.2f}
-- Fun (GCash): PHP {category_totals["gcash_fun"]:.2f}
-- Buffer (GCash): PHP {category_totals["gcash_buffer"]:.2f}
+- Offering (BDO): PHP {category_totals["offering_bdo"]:.2f} ({calc_pct(category_totals["offering_bdo"])})
+- Retained (BDO): PHP {category_totals["retained_bdo"]:.2f} ({calc_pct(category_totals["retained_bdo"])})
+- Savings (GoTyme): PHP {category_totals["gotyme_savings"]:.2f} ({calc_pct(category_totals["gotyme_savings"])})
+- Emergency (GoTyme): PHP {category_totals["gotyme_emergency"]:.2f} ({calc_pct(category_totals["gotyme_emergency"])})
+- Food (GCash): PHP {category_totals["gcash_food"]:.2f} ({calc_pct(category_totals["gcash_food"])})
+- Bills (GCash): PHP {category_totals["gcash_bills"]:.2f} ({calc_pct(category_totals["gcash_bills"])})
+- Fun (GCash): PHP {category_totals["gcash_fun"]:.2f} ({calc_pct(category_totals["gcash_fun"])})
+- Buffer (GCash): PHP {category_totals["gcash_buffer"]:.2f} ({calc_pct(category_totals["gcash_buffer"])})
 
 Monthly Account Totals:
 """
     for account, total in account_totals.items():
-        report += f"- {account}: PHP {total:.2f}\n"
+        report += f"- {account}: PHP {total:.2f} ({calc_pct(total)})\n"
     
     return report
