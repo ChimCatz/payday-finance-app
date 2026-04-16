@@ -5,7 +5,7 @@ from decimal import Decimal
 from src.config import DEFAULT_BUDGET, MIN_BDO_RETAINED
 from src.models import PayoutInput, BudgetConfig, HistoryEntry
 from src.finance_engine import allocate_payout
-from src.reporting import generate_payout_report
+from src.reporting import generate_payout_report, generate_monthly_summary
 from src.storage import Storage
 
 
@@ -37,6 +37,13 @@ def main():
         allocation=allocation
     )
     storage.save_history_entry(entry)
+
+    # Show monthly summary
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    monthly_history = storage.get_history_by_month(current_year, current_month)
+    monthly_report = generate_monthly_summary(monthly_history)
+    print("\n" + monthly_report)
 
 
 if __name__ == "__main__":
